@@ -1,11 +1,15 @@
 # Jarvis Configuration
 # Secrets should be in .env file, not here!
 
+# Assistant identity
+assistant:
+  name: "Fred's AI"         # The assistant's name
+
 # User Profile (customize in ~/.jarvis/config/settings.yaml)
 user:
-  name: ""                  # Your full name
-  nickname: ""              # How Jarvis should address you (optional)
-  address_user: false       # Whether Jarvis should address you by name
+  name: "Fred"              # Your full name
+  nickname: "Fred"          # How the assistant should address you (optional)
+  address_user: true        # Whether the assistant should address you by name
 
 # Model Settings
 models:
