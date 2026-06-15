@@ -7,6 +7,12 @@
   Multi-provider support, 35+ tools, multimodal generation, intent-based routing, persistent memory, RAG, and voice I/O.
 </p>
 
+---
+
+> **Personalized fork.** Built on the open-source [jarvis](https://github.com/rezaulhreza/jarvis) project by rezaulhreza, used under the MIT License. Customized by **Adossi Fred William**: renamed the assistant to "Fred's AI", added a custom assistant persona, and updated the assistant identity. The original author retains copyright on the base implementation (see [LICENSE](LICENSE)).
+
+---
+
 ## Features
 
 - **Multi-Provider Support**: Ollama (local), Ollama Cloud (remote), Chutes AI (comprehensive cloud platform)
