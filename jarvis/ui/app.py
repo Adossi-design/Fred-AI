@@ -4052,6 +4052,35 @@ Analyze queries using multiple AI models simultaneously.
 
                 all_messages = recent + tool_messages + [Message(role="user", content=effective_input)]
 
+                # --- Semantic response cache: return instantly on a hit ---
+                _cache = None
+                try:
+                    if not hasattr(jarvis, "_response_cache"):
+                        from jarvis.core.response_cache import ResponseCache
+                        jarvis._response_cache = ResponseCache(
+                            provider=jarvis.provider,
+                            embed_model=jarvis.config.get("models", {}).get("embeddings", "nomic-embed-text"),
+                        )
+                    _cache = jarvis._response_cache
+                    _cached = _cache.get(user_input)
+                except Exception as _ce:
+                    print(f"[cache] disabled: {_ce}")
+                    _cache, _cached = None, None
+                if _cached is not None:
+                    print("[CACHE] hit - returning cached response instantly")
+                    await websocket.send_json({
+                        "type": "stream",
+                        "content": _clean_for_web(_cached, streaming=True),
+                        "done": False,
+                    })
+                    jarvis.context.add_message_to_chat("assistant", _cached)
+                    response_msg = {"type": "response", "content": "", "done": True, "cached": True}
+                    _cs = _get_context_stats(jarvis)
+                    if _cs:
+                        response_msg["context"] = _cs
+                    await safe_send_json(websocket, response_msg)
+                    return
+
                 # Use fast chat model (Ollama only)
                 provider_name = getattr(jarvis.provider, "name", "")
                 original_model = jarvis.provider.model
@@ -4150,6 +4179,13 @@ Analyze queries using multiple AI models simultaneously.
                 clean_response_text = _clean_for_web(response_text)
                 if clean_response_text.strip():
                     jarvis.context.add_message_to_chat("assistant", clean_response_text.strip())
+
+                    # Store in the semantic cache (skip if generation was interrupted)
+                    if _cache is not None and not (_stop_ref and _stop_ref.stop_requested):
+                        try:
+                            _cache.put(user_input, clean_response_text.strip())
+                        except Exception:
+                            pass
 
                     # Auto-extract facts from conversation (async, non-blocking)
                     asyncio.create_task(_extract_facts_async(jarvis, user_input, clean_response_text.strip(), getattr(jarvis.context, 'user_id', None)))
