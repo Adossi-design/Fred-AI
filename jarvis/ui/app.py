@@ -106,6 +106,44 @@ class DummySpinner:
     def __exit__(self, *args): pass
 
 
+def _generate_suggestions(jarvis, user_input: str, answer: str) -> list:
+    """Generate up to 3 short follow-up question suggestions for the last exchange.
+
+    Best-effort and synchronous (run in a thread by the caller). Returns an empty
+    list on any failure so it never breaks the response flow.
+    """
+    import json
+    import re
+    try:
+        prompt = (
+            "Given the latest exchange, propose 3 natural follow-up questions the user "
+            "might ask next. Each under 8 words, no numbering. Return ONLY a JSON array "
+            "of 3 strings.\n\n"
+            f"User: {user_input}\nAssistant: {answer[:800]}"
+        )
+        gen = jarvis.provider.chat(
+            messages=[{"role": "user", "content": prompt}],
+            system="You suggest concise follow-up questions. Output only a JSON array of strings.",
+            stream=True,
+            options={"num_predict": 120, "temperature": 0.7},
+        )
+        if hasattr(gen, "__iter__") and not isinstance(gen, str):
+            text = "".join(str(c) for c in gen)
+        else:
+            text = str(gen or "")
+        match = re.search(r"\[.*\]", text, re.S)
+        if not match:
+            return []
+        items = json.loads(match.group(0))
+        cleaned = []
+        for s in items:
+            if isinstance(s, str) and s.strip():
+                cleaned.append(s.strip().strip('"').strip())
+        return cleaned[:3]
+    except Exception:
+        return []
+
+
 def create_app() -> FastAPI:
     """Create the FastAPI application."""
     app = FastAPI(title="Jarvis", description="Personal AI Assistant")
@@ -4203,6 +4241,14 @@ Analyze queries using multiple AI models simultaneously.
                     response_msg["context"] = context_stats
                 await safe_send_json(websocket, response_msg)
 
+                # Follow-up suggestion chips (best-effort)
+                try:
+                    _sugg = await asyncio.to_thread(_generate_suggestions, jarvis, user_input, clean_response_text)
+                    if _sugg:
+                        await safe_send_json(websocket, {"type": "suggestions", "items": _sugg})
+                except Exception:
+                    pass
+
             else:
                 # AGENT MODE: Async with progressive streaming + parallel tools
                 print(f"[LLM] Agent mode → {getattr(jarvis.provider, 'name', '?')}/{getattr(jarvis.provider, 'model', '?')}  history={len(history)} msgs")
@@ -4384,6 +4430,14 @@ Analyze queries using multiple AI models simultaneously.
 
                         # Auto-extract facts from conversation (async, non-blocking)
                         asyncio.create_task(_extract_facts_async(jarvis, user_input, clean.strip(), getattr(jarvis.context, 'user_id', None)))
+
+                        # Follow-up suggestion chips (best-effort)
+                        try:
+                            _sugg = await asyncio.to_thread(_generate_suggestions, jarvis, user_input, clean.strip())
+                            if _sugg:
+                                await safe_send_json(websocket, {"type": "suggestions", "items": _sugg})
+                        except Exception:
+                            pass
 
                 print(f"[DONE] Total: {_time.time() - _req_start:.1f}s (agent)")
 

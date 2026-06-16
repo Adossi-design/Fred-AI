@@ -66,6 +66,8 @@ interface WSMessage {
   filename?: string
   // Chat switching
   messages?: Message[]
+  // Follow-up suggestion chips
+  items?: string[]
 }
 
 interface ToolEvent {
@@ -101,6 +103,7 @@ export function useWebSocket() {
   const [toolTimeline, setToolTimeline] = useState<ToolEvent[]>([])
   const [intentInfo, setIntentInfo] = useState<IntentInfo | null>(null)
   const [contextStats, setContextStats] = useState<ContextStats | null>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
   // pendingTools is used via setPendingTools callback form, not directly referenced
   const [liveToolStatus, setLiveToolStatus] = useState<LiveToolStatus[]>([])
   const [, setPendingTools] = useState<ToolEvent[]>([])
@@ -307,6 +310,10 @@ export function useWebSocket() {
         }
         break
 
+      case 'suggestions':
+        setSuggestions(Array.isArray(data.items) ? data.items : [])
+        break
+
       case 'media': {
         // Handle generated media (image, video, audio)
         if (data.media_type && data.path) {
@@ -354,6 +361,7 @@ export function useWebSocket() {
         setLiveToolStatus([])
         setIntentInfo(null)
         setContextStats(null)
+        setSuggestions([])
         thinkingStartRef.current = null
         isInsideThinkingRef.current = false
         break
@@ -371,6 +379,7 @@ export function useWebSocket() {
         setLiveToolStatus([])
         setIntentInfo(null)
         setContextStats(null)
+        setSuggestions([])
         thinkingStartRef.current = null
         isInsideThinkingRef.current = false
         break
@@ -438,6 +447,7 @@ export function useWebSocket() {
     setPendingTools([])
     setLiveToolStatus([])
     setIntentInfo(null)  // Reset intent for new query
+    setSuggestions([])   // Clear stale follow-up chips
 
     const message: Record<string, unknown> = {
       type: 'message',
@@ -547,6 +557,7 @@ export function useWebSocket() {
     liveToolStatus,
     intentInfo,
     contextStats,
+    suggestions,
     send,
     sendWithVideo,
     switchModel,

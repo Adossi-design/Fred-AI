@@ -101,6 +101,7 @@ function AppLayout() {
     chatId,
     contextStats,
     liveToolStatus,
+    suggestions,
     send,
     sendWithVideo,
     switchModel,
@@ -628,6 +629,21 @@ function AppLayout() {
                 <span className="w-2 h-2 rounded-full bg-error animate-pulse" />
                 <span className="text-sm font-medium">Listening...</span>
               </div>
+            </div>
+          )}
+
+          {/* Follow-up suggestion chips */}
+          {suggestions.length > 0 && !isLoading && !streaming && mode === 'chat' && (
+            <div className="px-4 pb-2 flex flex-wrap gap-2 justify-center">
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setInput(''); send(s, true) }}
+                  className="px-3 py-1.5 text-sm rounded-full border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/80 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
             </div>
           )}
 
