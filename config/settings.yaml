@@ -1,6 +1,10 @@
 # Jarvis Configuration
 # Secrets should be in .env file, not here!
 
+# LLM provider. "gemini" uses Google Gemini (smart; needs a free GEMINI_API_KEY)
+# and automatically falls back to local "ollama" if no key is configured.
+provider: gemini
+
 # Assistant identity
 assistant:
   name: "Fred's AI"         # The assistant's name

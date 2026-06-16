@@ -11,11 +11,13 @@ from .base import BaseProvider, Message
 from .ollama import OllamaProvider
 from .ollama_cloud import OllamaCloudProvider
 from .chutes import ChutesProvider
+from .gemini import GeminiProvider
 
 PROVIDERS = {
     "ollama": OllamaProvider,
     "ollama_cloud": OllamaCloudProvider,
     "chutes": ChutesProvider,
+    "gemini": GeminiProvider,
 }
 
 
@@ -37,6 +39,7 @@ __all__ = [
     "OllamaProvider",
     "OllamaCloudProvider",
     "ChutesProvider",
+    "GeminiProvider",
     "get_provider",
     "list_providers",
 ]

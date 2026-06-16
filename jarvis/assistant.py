@@ -233,6 +233,12 @@ class Jarvis:
                     provider_kwargs["api_key"] = provider_cfg.get("api_key")
                 if provider_cfg.get("base_url"):
                     provider_kwargs["base_url"] = provider_cfg.get("base_url")
+            elif provider_name == "gemini":
+                # Gemini also reads GEMINI_API_KEY from the environment automatically
+                if provider_cfg.get("api_key"):
+                    provider_kwargs["api_key"] = provider_cfg.get("api_key")
+                if provider_cfg.get("base_url"):
+                    provider_kwargs["base_url"] = provider_cfg.get("base_url")
 
             self.provider = get_provider(provider_name, **provider_kwargs)
             if not self.provider.is_configured() and provider_name != "ollama":
@@ -387,6 +393,11 @@ class Jarvis:
             "- Run shell commands with run_command",
             "- Execute Python code with run_python for math, data analysis, simulations, or plots. Prefer run_python over guessing for any non-trivial calculation, and report the actual output it returns.",
             "- Git operations: git_status, git_diff, git_log, git_commit, git_add",
+            "",
+            "INTERACTIVE ARTIFACTS:",
+            "- When asked to build something interactive (a quiz or QCM, game, calculator, flashcards, chart, visualization, form, or mini-app), reply with ONE self-contained HTML document inside a single ```html code block: inline CSS and JavaScript, no external libraries or files. It must work standalone in a browser.",
+            "- For a quiz/QCM specifically: show ONE question at a time with clickable answer choices, give instant correct/incorrect feedback after each answer, track progress, and show a final score with a restart button. Make it look clean and modern.",
+            "- Keep any explanation outside the code block to one short sentence; the HTML is the deliverable (it renders as a live interactive panel).",
         ])
 
         # Project context
