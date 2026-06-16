@@ -2288,6 +2288,103 @@ def github_search(query: str, search_type: str = "repos") -> str:
         return f"GitHub search failed: {e}"
 
 
+def run_python(code: str, timeout: int = 30) -> str:
+    """Execute Python code in an isolated subprocess and return its output.
+
+    Use this to do calculations, data analysis, run algorithms, simulate things,
+    or demonstrate code. The code runs in its own process in a fresh temporary
+    directory with a time limit. Whatever the code prints to stdout, plus any
+    errors, is returned. Libraries available include numpy. matplotlib uses a
+    headless backend, so save any plot to a file (e.g. plt.savefig('plot.png')).
+
+    Args:
+        code: The Python source code to execute.
+        timeout: Maximum seconds before the code is terminated (default 30, max 120).
+
+    Returns:
+        The captured stdout/stderr (and names of any files the code created).
+    """
+    import sys
+    import os
+    import uuid
+    import shutil
+    import tempfile
+    import subprocess
+
+    if not code or not code.strip():
+        return "No code provided."
+    try:
+        timeout = int(timeout) if timeout else 30
+    except (TypeError, ValueError):
+        timeout = 30
+    timeout = max(1, min(timeout, 120))
+
+    workdir = tempfile.mkdtemp(prefix="jarvis_py_")
+    script = os.path.join(workdir, "snippet.py")
+    try:
+        with open(script, "w", encoding="utf-8") as f:
+            f.write(code)
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["MPLBACKEND"] = "Agg"  # headless matplotlib if present
+        proc = subprocess.run(
+            [sys.executable, "-I", script],
+            cwd=workdir,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+        )
+        out = (proc.stdout or "").strip()
+        err = (proc.stderr or "").strip()
+        created = [
+            f for f in os.listdir(workdir)
+            if f != "snippet.py" and os.path.isfile(os.path.join(workdir, f))
+        ]
+
+        # Preserve any generated images into the served media dir so they can be
+        # displayed inline in the web UI (the temp workdir is deleted afterwards).
+        image_exts = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
+        image_urls = []
+        if created:
+            data_dir = os.environ.get("JARVIS_DATA_DIR") or os.path.join(os.path.expanduser("~"), ".jarvis")
+            gen_dir = os.path.join(data_dir, "generated")
+            try:
+                os.makedirs(gen_dir, exist_ok=True)
+                for fn in sorted(created):
+                    if fn.lower().endswith(image_exts):
+                        ext = os.path.splitext(fn)[1]
+                        dest_name = f"py_{uuid.uuid4().hex[:12]}{ext}"
+                        shutil.copyfile(os.path.join(workdir, fn), os.path.join(gen_dir, dest_name))
+                        image_urls.append(f"/api/generated/{dest_name}")
+            except Exception:
+                pass
+
+        parts = []
+        if out:
+            parts.append("Output:\n" + out[:4000])
+        if err:
+            parts.append("Errors:\n" + err[:2000])
+        if image_urls:
+            embeds = " ".join(f"![plot]({u})" for u in image_urls)
+            parts.append(
+                "An image was generated. To show it, include this exact markdown in your reply:\n" + embeds
+            )
+        if created:
+            parts.append("Files created: " + ", ".join(sorted(created)))
+        if not parts:
+            parts.append("(ran successfully with no output)")
+        if proc.returncode != 0 and not err:
+            parts.append(f"(process exited with code {proc.returncode})")
+        return "\n\n".join(parts)
+    except subprocess.TimeoutExpired:
+        return f"Execution timed out after {timeout}s (possible infinite loop or very slow code)."
+    except Exception as e:
+        return f"Failed to run code: {e}"
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+
 # =============================================================================
 # ALL TOOLS LIST
 # =============================================================================
@@ -2318,6 +2415,7 @@ ALL_TOOLS = [
     git_stash,
     # Shell
     run_command,
+    run_python,
     # Web
     web_search,
     web_fetch,
@@ -2372,6 +2470,7 @@ _TOOL_FUNC_TO_NAME = {
     git_branch: "git_branch",
     git_stash: "git_stash",
     run_command: "run_command",
+    run_python: "run_python",
     web_search: "web_search",
     web_fetch: "web_fetch",
     get_current_news: "get_current_news",
@@ -2415,7 +2514,8 @@ TOOL_REGISTRY = {
     "git_branch":       {"category": "git",  "intents": ["git"],                 "keywords": ["branch", "checkout", "switch"]},
     "git_stash":        {"category": "git",  "intents": ["git"],                 "keywords": ["stash", "save", "restore"]},
     # Shell
-    "run_command":      {"category": "shell","intents": ["shell", "code"],       "keywords": ["run", "execute", "command", "npm", "pip", "python"]},
+    "run_command":      {"category": "shell","intents": ["shell", "code"],       "keywords": ["run", "execute", "command", "npm", "pip"]},
+    "run_python":       {"category": "code", "intents": ["code", "calculate", "shell"], "keywords": ["python", "code", "run", "execute", "calculate", "compute", "plot", "chart", "simulate", "script", "dataframe", "numpy"]},
     # Web
     "web_search":       {"category": "web",  "intents": ["search", "news", "finance"], "keywords": ["search", "find", "look up", "google"]},
     "web_fetch":        {"category": "web",  "intents": ["search"],              "keywords": ["fetch", "url", "webpage", "browse", "visit", "check", "website", "http", "www"]},
@@ -2447,7 +2547,7 @@ _ALWAYS_INCLUDE = {"read_file"}
 # Category groups - when one tool from a category is relevant, include related ones
 _CATEGORY_GROUPS = {
     "file": ["read_file", "list_files", "search_files", "write_file", "edit_file", "glob_files", "grep", "get_project_structure"],
-    "code": ["read_file", "write_file", "edit_file", "apply_patch", "find_definition", "find_references", "run_tests", "get_project_overview", "grep", "glob_files"],
+    "code": ["read_file", "write_file", "edit_file", "apply_patch", "find_definition", "find_references", "run_tests", "run_python", "get_project_overview", "grep", "glob_files"],
     "git": ["git_status", "git_diff", "git_log", "git_commit", "git_add", "git_branch", "git_stash", "create_pr", "update_pr"],
     "web": ["web_search", "web_fetch", "get_current_news"],
     "task": ["task_create", "task_update", "task_list", "task_get"],

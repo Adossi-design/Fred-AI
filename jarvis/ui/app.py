@@ -144,6 +144,60 @@ def _generate_suggestions(jarvis, user_input: str, answer: str) -> list:
         return []
 
 
+def _is_code_exec_request(text: str) -> bool:
+    """Detect requests that should run Python (vs. just chatting about it)."""
+    import re
+    if not text:
+        return False
+    if "```" in text:
+        return True
+    t = text.lower()
+    if re.search(r"\b(run|execute)\b.{0,40}\b(code|python|script|snippet|this|following)\b", t):
+        return True
+    if "python" in t and re.search(r"\b(run|execute|calculate|compute|plot|graph|chart|simulate|evaluate|solve)\b", t):
+        return True
+    return False
+
+
+def _extract_code(text: str):
+    """Pull runnable Python out of the user's message, if they provided it."""
+    import re
+    m = re.search(r"```(?:python|py)?\s*(.*?)```", text, re.S | re.I)
+    if m and m.group(1).strip():
+        return m.group(1).strip()
+    m = re.search(r"(?:run|execute)[^:\n]*:\s*(.+)", text, re.I | re.S)
+    if m:
+        snippet = m.group(1).strip()
+        if any(k in snippet for k in ("print", "import", "for ", "def ", "=", "(")):
+            return snippet
+    return None
+
+
+def _generate_code(jarvis, user_input: str) -> str:
+    """Ask the model to write a runnable Python script for the request (code only)."""
+    import re
+    sys_prompt = (
+        "You are a Python code generator. Write a single, complete, runnable Python script "
+        "that fulfills the user's request. Use print() to show any results. If a plot or chart "
+        "is requested, build it with matplotlib and save it with plt.savefig('plot.png') and do "
+        "NOT call plt.show(). Output ONLY the Python code, with no markdown fences and no commentary."
+    )
+    gen = jarvis.provider.chat(
+        messages=[{"role": "user", "content": user_input}],
+        system=sys_prompt,
+        stream=True,
+        options={"num_predict": 400, "temperature": 0.2},
+    )
+    if hasattr(gen, "__iter__") and not isinstance(gen, str):
+        text = "".join(str(c) for c in gen)
+    else:
+        text = str(gen or "")
+    m = re.search(r"```(?:python|py)?\s*(.*?)```", text, re.S | re.I)
+    if m:
+        text = m.group(1)
+    return text.strip()
+
+
 def create_app() -> FastAPI:
     """Create the FastAPI application."""
     app = FastAPI(title="Jarvis", description="Personal AI Assistant")
@@ -3636,6 +3690,37 @@ Analyze queries using multiple AI models simultaneously.
                     "type": "chat_id_updated",
                     "chat_id": chat_id,
                 })
+
+            # --- Code execution: actually run Python for code/computational requests ---
+            if _is_code_exec_request(user_input):
+                try:
+                    _code = _extract_code(user_input)
+                    if not _code:
+                        await safe_send_json(websocket, {"type": "status", "content": "Writing code..."})
+                        _code = await asyncio.to_thread(_generate_code, jarvis, user_input)
+                    if _code and _code.strip():
+                        from jarvis.core.tools import run_python
+                        await safe_send_json(websocket, {"type": "status", "content": "Running code..."})
+                        _result = await asyncio.to_thread(run_python, _code, 60)
+                        import re as _re
+                        _images = _re.findall(r"!\[plot\]\(([^)]+)\)", _result)
+                        _clean = _re.sub(r"An image was generated\..*", "", _result, flags=_re.S).strip()
+                        _clean = _re.sub(r"^Output:\s*\n", "", _clean)  # avoid doubled "Output:" label
+                        _parts = [f"```python\n{_code}\n```"]
+                        if _clean:
+                            _parts.append("**Output:**\n```\n" + _clean + "\n```")
+                        for _u in _images:
+                            _parts.append(f"![plot]({_u})")
+                        _resp = "\n\n".join(_parts)
+                        jarvis.context.add_message_to_chat("assistant", _resp)
+                        _rmsg = {"type": "response", "content": _resp, "done": True}
+                        _cs = _get_context_stats(jarvis)
+                        if _cs:
+                            _rmsg["context"] = _cs
+                        await safe_send_json(websocket, _rmsg)
+                        return
+                except Exception as _cex:
+                    print(f"[code-exec] failed, falling back to normal chat: {_cex}")
 
             # Build history (enriched with semantic retrieval when available)
             from jarvis.providers import Message

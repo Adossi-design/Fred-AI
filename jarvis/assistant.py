@@ -385,6 +385,7 @@ class Jarvis:
             "- Read, write, and edit files with read_file, write_file, edit_file",
             "- Search code with search_files, glob_files, grep",
             "- Run shell commands with run_command",
+            "- Execute Python code with run_python for math, data analysis, simulations, or plots. Prefer run_python over guessing for any non-trivial calculation, and report the actual output it returns.",
             "- Git operations: git_status, git_diff, git_log, git_commit, git_add",
         ])
 

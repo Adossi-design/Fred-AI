@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .tools import (
-    read_file, list_files, search_files, run_command,
+    read_file, list_files, search_files, run_command, run_python,
     write_file, edit_file, get_project_structure, set_project_root, set_ui,
     clear_read_files, ALL_TOOLS, select_tools,
     # File operations
@@ -359,6 +359,7 @@ class Agent:
             "list all", "list the", "create", "write", "delete", "remove",
             "run", "execute", "test", "install", "build", "deploy",
             "directory", "folder", "path", "import", "module", "variable",
+            "calculate", "compute", "python", "plot", "simulate", "dataframe",
         ]
         if any(s in msg for s in file_signals):
             return True
@@ -868,6 +869,7 @@ TOOL ORDERING RULES:
             "web_search": "query", "web_fetch": "url", "read_file": "path",
             "write_file": "path", "search_files": "query", "list_files": "path",
             "glob_files": "pattern", "grep": "pattern", "run_command": "command",
+            "run_python": "code",
             "calculate": "expression", "get_weather": "city", "get_current_time": "timezone",
             "get_gold_price": "currency", "get_current_news": "topic",
             "save_memory": "content", "recall_memory": "query",
@@ -1284,6 +1286,7 @@ TOOL ORDERING RULES:
             "get_gold_price": {"required": [], "types": {"currency": str}},
             "calculate": {"required": ["expression"], "types": {"expression": str}},
             "run_command": {"required": ["command"], "types": {"command": str}},
+            "run_python": {"required": ["code"], "types": {"code": str}},
             "git_commit": {"required": ["message"], "types": {"message": str}},
             "git_add": {"required": ["files"], "types": {"files": str}},
             "save_memory": {"required": ["content"], "types": {"content": str}},
@@ -1368,6 +1371,7 @@ TOOL ORDERING RULES:
             "git_stash": git_stash,
             # Shell
             "run_command": run_command,
+            "run_python": run_python,
             # Web
             "web_search": web_search,
             "web_fetch": web_fetch,
@@ -2096,6 +2100,7 @@ TOOL ORDERING RULES:
             "git_branch": git_branch,
             "git_stash": git_stash,
             "run_command": run_command,
+            "run_python": run_python,
             "web_search": web_search,
             "web_fetch": web_fetch,
             "get_current_news": get_current_news,
