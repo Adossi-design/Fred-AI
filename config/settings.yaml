@@ -13,7 +13,7 @@ user:
 
 # Model Settings
 models:
-  default: "qwen3:4b"
+  default: "llama3.2"
   reasoning: "deepseek-r1:8b"
   vision: "llava"
   code: "qwen2.5-coder:7b"
@@ -25,7 +25,7 @@ context:
   max_tokens: 128000
   keep_recent_messages: 10
   auto_compact: true
-  summary_model: "qwen3:4b"
+  summary_model: "llama3.2"
 
 # Agent Behavior
 agent:
@@ -86,7 +86,7 @@ memory:
   database: "memory/jarvis.db"
   vector_store: "knowledge/chroma_db"  # ChromaDB local path (fallback when Qdrant not configured)
   # Vector backend is auto-detected from env: QDRANT_URL + QDRANT_API_KEY → Qdrant, otherwise → ChromaDB
-  rerank: true  # Enable cross-encoder reranking for better retrieval accuracy
+  rerank: false  # Cross-encoder reranking needs sentence-transformers (not installed); cosine distance is used instead
   rerank_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"  # Reranker model (requires sentence-transformers)
   # rerank_threshold: -5.0  # Min rerank score (disabled by default - calibrate on your data first)
   relevance_threshold: 0.5  # Max cosine distance when reranker disabled (0-1, lower = stricter)
@@ -105,8 +105,7 @@ integrations:
 
   web_search:
     enabled: true
-    # provider: "duckduckgo"
-    provider: "brave"
+    provider: "duckduckgo"   # free, no API key needed (Brave requires BRAVE_API_KEY)
 
   weather:
     enabled: false
