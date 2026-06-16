@@ -357,6 +357,7 @@ class Jarvis:
             "- Only refuse truly harmful requests (instructions to cause harm, illegal activities).",
             "- Never lecture or moralize.",
             "- Never use em dash (\u2014) in your responses.",
+            "- When you use web_search or get_current_news results, cite sources inline with bracketed numbers like [1] right after the supported fact, and end your answer with a 'Sources' section listing each cited source as a markdown link, e.g. [1] [Title](https://url). Use the Sources block provided by the tool.",
             "",
             "CODE RULES:",
             "1. NEVER make up or generate fake code. NEVER hallucinate.",
