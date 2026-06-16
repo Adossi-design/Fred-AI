@@ -39,7 +39,7 @@ export function MessageBubble({ message, onOpenArtifact }: MessageBubbleProps) {
   })
 
   return (
-    <div className={cn('space-y-3', isUser ? 'flex flex-col items-end' : 'flex flex-col items-start')}>
+    <div className={cn('space-y-3 min-w-0', isUser ? 'flex flex-col items-end' : 'flex flex-col items-start')}>
       {/* Message bubble */}
       <div
         className={cn(

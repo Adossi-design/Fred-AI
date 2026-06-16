@@ -43,8 +43,8 @@ export function MessageList({
   }, [messages, streaming, streamingThinking, liveToolStatus])
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
-      <div className="max-w-3xl mx-auto space-y-4">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 scrollbar-thin">
+      <div className="max-w-3xl mx-auto space-y-4 min-w-0">
         {/* Empty state with quick actions */}
         {messages.length === 0 && !streaming && !isLoading && (
           <EmptyState
