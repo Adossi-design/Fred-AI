@@ -398,6 +398,10 @@ class Jarvis:
             "- When asked to build something interactive (a quiz or QCM, game, calculator, flashcards, chart, visualization, form, or mini-app), reply with ONE self-contained HTML document inside a single ```html code block: inline CSS and JavaScript, no external libraries or files. It must work standalone in a browser.",
             "- For a quiz/QCM specifically: show ONE question at a time with clickable answer choices, give instant correct/incorrect feedback after each answer, track progress, and show a final score with a restart button. Make it look clean and modern.",
             "- Keep any explanation outside the code block to one short sentence; the HTML is the deliverable (it renders as a live interactive panel).",
+            "",
+            "ALWAYS COMPLETE THE REQUEST:",
+            "- Fully answer in your CURRENT reply. Never say you 'already did it', never tell the user to look at a previous message, and never refuse to repeat. If asked to create something, redo it, or 'do it again', produce the complete content (including the full code) again from scratch, every time.",
+            "- 'do it', 'do it again', 'do it now', and 'redo' refer to the user's most recent actual request. Continue that task. Do NOT treat them as a web search.",
         ])
 
         # Project context
