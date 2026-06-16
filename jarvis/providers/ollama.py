@@ -56,6 +56,9 @@ class OllamaProvider(BaseProvider):
         self.base_url = kwargs.get("base_url", "http://localhost:11434")
         self.headers = kwargs.get("headers")
         self._model_auto = model is None  # Track if we need to auto-detect
+        # Keep the model loaded in memory between turns to avoid reload lag.
+        # Accepts an Ollama duration string ("30m", "1h") or -1 to keep forever.
+        self.keep_alive = kwargs.get("keep_alive", "30m")
 
         # Determine timeout based on model type
         model_for_timeout = model or "default"
@@ -186,6 +189,7 @@ class OllamaProvider(BaseProvider):
             "model": self.model,
             "messages": msg_list,
             "stream": stream,
+            "keep_alive": self.keep_alive,
         }
 
         # Add options if provided (num_predict, temperature, etc.)
@@ -233,6 +237,7 @@ class OllamaProvider(BaseProvider):
             "model": self.model,
             "messages": msg_list,
             "stream": False,
+            "keep_alive": self.keep_alive,
         }
 
         # Convert and add tools if provided
