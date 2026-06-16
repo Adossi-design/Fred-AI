@@ -22,6 +22,8 @@ import { FloatingOrb } from './components/orb'
 import { getOrbState } from './components/orb/getOrbState'
 import { DraggableCamera } from './components/camera/DraggableCamera'
 import { ChatSidebar } from './components/sidebar/ChatSidebar'
+import { CanvasPanel } from './components/CanvasPanel'
+import type { Artifact } from './lib/artifacts'
 
 // Icons
 import {
@@ -111,6 +113,9 @@ function AppLayout() {
     stopGeneration,
     setOnAuthError,
   } = useWebSocket()
+
+  // Artifacts / Canvas panel
+  const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null)
 
   // File upload hook
   const { files, addFiles, removeFile, clearFiles, getAttachmentIds } = useFileUpload()
@@ -620,7 +625,12 @@ function AppLayout() {
             liveToolStatus={liveToolStatus}
             assistantName={assistantName}
             onQuickAction={handleQuickAction}
+            onOpenArtifact={setActiveArtifact}
           />
+
+          {/* Artifacts / Canvas side panel */}
+          <CanvasPanel artifact={activeArtifact} onClose={() => setActiveArtifact(null)} />
+
 
           {/* Recording indicator */}
           {isRecording && mode === 'chat' && (

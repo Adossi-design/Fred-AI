@@ -3,9 +3,12 @@ import type { Message, ToolEvent } from '../../types'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ThinkingBlock } from './ThinkingBlock'
+import { extractArtifact, type Artifact } from '../../lib/artifacts'
+import { LayoutTemplate } from 'lucide-react'
 
 interface MessageBubbleProps {
   message: Message
+  onOpenArtifact?: (artifact: Artifact) => void
 }
 
 // Extract URLs from text
@@ -15,8 +18,9 @@ const extractUrls = (text?: string): string[] => {
   return Array.from(new Set(matches))
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onOpenArtifact }: MessageBubbleProps) {
   const { role, content, timestamp, tools, media, thinking, thinkingDuration } = message
+  const artifact = role === 'assistant' ? extractArtifact(content) : null
 
   if (role === 'system') {
     return (
@@ -47,7 +51,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       >
         {isUser ? (
           <>
-            <p className="whitespace-pre-wrap text-text leading-relaxed">{content}</p>
+            <p className="whitespace-pre-wrap break-words text-text leading-relaxed">{content}</p>
             {/* Timestamp inline bottom-right */}
             <div className="flex justify-end mt-1.5">
               <span className="text-[10px] text-text-muted/50">{timeStr}</span>
@@ -135,14 +139,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             )}
             {/* Text content */}
             {content && (
-              <div className="prose prose-invert prose-sm max-w-none text-text leading-relaxed
+              <div className="prose prose-invert prose-sm max-w-none break-words min-w-0 text-text leading-relaxed
                 prose-p:my-2 prose-p:leading-relaxed
                 prose-headings:text-text prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
                 prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
                 prose-strong:text-text prose-strong:font-semibold
                 prose-em:text-text/90
                 prose-code:text-cyan-400 prose-code:bg-surface-2 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
-                prose-pre:bg-surface-2 prose-pre:border prose-pre:border-border/30 prose-pre:rounded-lg prose-pre:my-3
+                prose-pre:bg-surface-2 prose-pre:border prose-pre:border-border/30 prose-pre:rounded-lg prose-pre:my-3 prose-pre:overflow-x-auto prose-pre:max-w-full prose-code:break-words
                 prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline
                 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5
                 prose-blockquote:border-l-primary prose-blockquote:text-text-muted prose-blockquote:not-italic
@@ -150,6 +154,16 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               ">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
               </div>
+            )}
+            {/* Open in Canvas (Artifacts) */}
+            {artifact && onOpenArtifact && (
+              <button
+                onClick={() => onOpenArtifact(artifact)}
+                className="mt-2 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition-colors"
+              >
+                <LayoutTemplate size={13} />
+                Open in Canvas
+              </button>
             )}
           </>
         )}

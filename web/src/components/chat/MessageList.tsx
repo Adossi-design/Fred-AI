@@ -4,6 +4,7 @@ import { ThinkingBlock } from './ThinkingBlock'
 import { ToolStatus, type LiveToolStatus } from './ToolStatus'
 import { EmptyState } from './EmptyState'
 import type { Message } from '../../types'
+import type { Artifact } from '../../lib/artifacts'
 import { Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -17,6 +18,7 @@ interface MessageListProps {
   liveToolStatus?: LiveToolStatus[]
   assistantName?: string
   onQuickAction?: (prompt: string) => void
+  onOpenArtifact?: (artifact: Artifact) => void
 }
 
 // Memoize completed messages to avoid re-renders during streaming
@@ -31,6 +33,7 @@ export function MessageList({
   liveToolStatus = [],
   assistantName,
   onQuickAction,
+  onOpenArtifact,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -52,7 +55,7 @@ export function MessageList({
 
         {/* Message list - use memoized bubbles for completed messages */}
         {messages.map((msg, i) => (
-          <MemoizedMessageBubble key={i} message={msg} />
+          <MemoizedMessageBubble key={i} message={msg} onOpenArtifact={onOpenArtifact} />
         ))}
 
         {/* Live tool status - shows during tool execution */}
@@ -92,7 +95,7 @@ export function MessageList({
                   prose-p:my-2 prose-p:leading-relaxed
                   prose-headings:text-text prose-headings:font-semibold
                   prose-code:text-cyan-400 prose-code:bg-surface-2 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
-                  prose-pre:bg-surface-2 prose-pre:border prose-pre:border-border/30 prose-pre:rounded-lg
+                  prose-pre:bg-surface-2 prose-pre:border prose-pre:border-border/30 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:max-w-full
                   prose-a:text-cyan-400 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5
                 ">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{streaming}</ReactMarkdown>
