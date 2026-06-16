@@ -1456,42 +1456,47 @@ TOOL ORDERING RULES:
 
     @staticmethod
     def _normalize_tool_calls(tool_calls) -> list:
-        """Normalize tool_calls to OpenAI-compatible format for API round-trips.
+        """Normalize tool_calls for API round-trips.
 
-        Ensures arguments is a JSON string and each call has type='function'.
+        Keeps arguments as a dict (the Ollama client validates them as a mapping;
+        a JSON string fails with "Input should be a valid dictionary"). Strings
+        emitted by smaller models are parsed back into dicts.
         """
         if not tool_calls:
             return tool_calls
+
+        def _as_dict(args):
+            if isinstance(args, dict):
+                return args
+            if args is None or args == "":
+                return {}
+            if isinstance(args, str):
+                try:
+                    parsed = json.loads(args)
+                    return parsed if isinstance(parsed, dict) else {}
+                except (json.JSONDecodeError, ValueError):
+                    return {}
+            return {}
+
         normalized = []
         for call in tool_calls:
             if hasattr(call, 'function'):
-                # SDK object — convert to dict
-                args = call.function.arguments
-                if isinstance(args, dict):
-                    args = json.dumps(args)
-                elif args is None:
-                    args = "{}"
                 normalized.append({
                     "id": getattr(call, "id", None) or "",
                     "type": "function",
                     "function": {
                         "name": call.function.name,
-                        "arguments": args,
+                        "arguments": _as_dict(call.function.arguments),
                     }
                 })
             elif isinstance(call, dict):
                 func = call.get("function", {})
-                args = func.get("arguments", {})
-                if isinstance(args, dict):
-                    args = json.dumps(args)
-                elif args is None:
-                    args = "{}"
                 normalized.append({
                     "id": call.get("id", ""),
                     "type": "function",
                     "function": {
                         "name": func.get("name", ""),
-                        "arguments": args,
+                        "arguments": _as_dict(func.get("arguments")),
                     }
                 })
             else:
