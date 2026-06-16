@@ -526,9 +526,10 @@ def _launch_dev(port: int):
         click.echo("Error: web/ directory not found")
         sys.exit(1)
 
-    # Kill any existing processes on the ports first
-    subprocess.run(f"lsof -ti:{port} | xargs kill -9 2>/dev/null", shell=True)
-    subprocess.run("lsof -ti:3000 | xargs kill -9 2>/dev/null", shell=True)
+    # Kill any existing processes on the ports first (best-effort; lsof is Unix-only)
+    if os.name != "nt":
+        subprocess.run(f"lsof -ti:{port} | xargs kill -9 2>/dev/null", shell=True)
+        subprocess.run("lsof -ti:3000 | xargs kill -9 2>/dev/null", shell=True)
 
     click.echo("🚀 Starting Jarvis Dev Environment")
     click.echo(f"   Backend:  http://localhost:{port}")
@@ -539,9 +540,10 @@ def _launch_dev(port: int):
 
     def cleanup():
         """Kill all processes by port - most reliable on macOS."""
-        # Kill by port
-        subprocess.run(f"lsof -ti:{port} | xargs kill -9 2>/dev/null", shell=True)
-        subprocess.run("lsof -ti:3000 | xargs kill -9 2>/dev/null", shell=True)
+        # Kill by port (lsof is Unix-only; on Windows we rely on terminating tracked processes below)
+        if os.name != "nt":
+            subprocess.run(f"lsof -ti:{port} | xargs kill -9 2>/dev/null", shell=True)
+            subprocess.run("lsof -ti:3000 | xargs kill -9 2>/dev/null", shell=True)
         # Also terminate our tracked processes
         for p in processes:
             if p.poll() is None:
@@ -557,11 +559,11 @@ def _launch_dev(port: int):
         )
         processes.append(backend)
 
-        # Start frontend
-        frontend = subprocess.Popen(
-            ["npm", "run", "dev"],
-            cwd=web_dir
-        )
+        # Start frontend (on Windows npm is npm.cmd, which needs the shell to resolve)
+        if os.name == "nt":
+            frontend = subprocess.Popen("npm run dev", cwd=web_dir, shell=True)
+        else:
+            frontend = subprocess.Popen(["npm", "run", "dev"], cwd=web_dir)
         processes.append(frontend)
 
         # Wait for either to exit
